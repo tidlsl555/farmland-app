@@ -24,8 +24,15 @@ export default defineConfig(({ mode, command }) => {
       transformIndexHtml(html) {
         return html.replace(
           "<!-- farmland-runtime-config -->",
-          `<script>window.FARMLAND_APP_CONFIG=${runtimeConfig};</script>`
+          '<script src="./runtime-config.js"></script>'
         );
+      },
+      generateBundle() {
+        this.emitFile({
+          type: "asset",
+          fileName: "runtime-config.js",
+          source: `window.FARMLAND_APP_CONFIG=${runtimeConfig};\n`
+        });
       }
     }],
     build: {

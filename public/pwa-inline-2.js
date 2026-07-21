@@ -931,7 +931,6 @@
       if (!marker) {
         marker = L.marker([parcel.lat, parcel.lng], { title: parcel.name || parcel.address, icon: pinIcon });
         marker.addTo(map);
-        marker.on('click', () => handleParcelMarkerTap(parcel.id));
         markers.set(parcel.id, marker);
       } else {
         marker.setLatLng([parcel.lat, parcel.lng]);
@@ -1420,10 +1419,27 @@
     return {ok:true, parcel, task, work, completedAt};
   }
 
+  function cancelQuickWorkForParcel(parcelId, source='지도 숫자 두 번 터치 자동 취소') {
+    const settings = ensureQuickSettings();
+    const task = getTask(settings.quickTaskId);
+    const parcel = getParcel(parcelId);
+    if (!settings.quickWorkEnabled || !task || !parcel) return {ok:false};
+    const work = getWork(parcel, task.id);
+    if (!work.done) return {ok:false, parcel, task};
+    work.done = false;
+    work.date = null;
+    state.logs.push({ id:uid(), type:'work-cancel', parcelId:parcel.id, taskId:task.id, date:nowIso(), note:source });
+    lastQuickAction = null;
+    persistStateQuietly('빠른작업 자동 취소');
+    renderAll();
+    try { if (navigator.vibrate) navigator.vibrate([25,35,25]); } catch (_) {}
+    return {ok:true, parcel, task};
+  }
+
   function handleParcelMarkerTap(parcelId) {
     const now = Date.now();
     const last = lastParcelQuickTap.get(parcelId) || 0;
-    if (now - last < 650) return;
+    const doubleTap = now - last < 550;
     lastParcelQuickTap.set(parcelId, now);
 
     const settings = ensureQuickSettings();
@@ -1436,6 +1452,12 @@
     if (!parcel) return;
     if (isWaterTask(task)) {
       openWaterForParcel(parcelId);
+      return;
+    }
+    if (doubleTap) {
+      lastParcelQuickTap.set(parcelId, 0);
+      const cancelled = cancelQuickWorkForParcel(parcelId);
+      if (cancelled.ok) showQuickToast('작업 자동 취소', `${parcel.number}. ${parcel.name || parcel.address} · ${task.name}`);
       return;
     }
     const result = completeQuickWorkForParcel(parcelId, '지도 빠른 작업 체크');

@@ -1,0 +1,29 @@
+{
+  "name": "실시간 농지관리",
+  "short_name": "농지관리",
+  "description": "필지 경계, 작업, 물관리를 실시간 동기화하는 농지관리 웹앱",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#e2e8f0",
+  "theme_color": "#14532d",
+  "lang": "ko-KR",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "./icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

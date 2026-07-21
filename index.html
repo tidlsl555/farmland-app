@@ -1,74 +1,156 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#245b3b" />
-  <title>논관리</title>
-  <link rel="stylesheet" href="styles.css" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#14532d">
+  <meta name="description" content="실시간 농지 필지경계·작업·물관리 웹앱">
+  <title>실시간 농지관리</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
 </head>
 <body>
-  <header class="topbar">
-    <div>
-      <p class="eyebrow">FARMLAND LOG</p>
-      <h1>논관리</h1>
-    </div>
-    <button id="logoutButton" class="ghost hidden">로그아웃</button>
-  </header>
-
-  <main>
-    <section id="authSection" class="auth-card">
-      <div>
-        <p class="eyebrow">나의 영농 기록</p>
-        <h2>오늘의 논을 한눈에 관리하세요.</h2>
-        <p class="muted">농지와 작업 일정을 기록하면 모든 기기에서 실시간으로 동기화됩니다.</p>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">
+        <strong>실시간 농지관리</strong>
+        <span id="onlineBadge" class="status-badge">연결 확인 중</span>
       </div>
-      <form id="authForm">
-        <label>이메일<input id="email" type="email" required autocomplete="email" /></label>
-        <label>비밀번호<input id="password" type="password" required minlength="6" autocomplete="current-password" /></label>
-        <div class="button-row">
-          <button type="submit">로그인</button>
-          <button id="signUpButton" type="button" class="secondary">회원가입</button>
+      <div class="metrics" aria-label="현황">
+        <button class="metric" id="farmMetric"><span>농지</span><b id="farmCount">-</b></button>
+        <button class="metric" id="workMetric"><span id="workMetricLabel">작업</span><b id="workCount">-</b></button>
+        <button class="metric" id="boundaryMetric"><span>정확경계</span><b id="boundaryCount">-</b></button>
+      </div>
+    </header>
+
+    <main>
+      <div id="map" class="map" aria-label="농지 지도"></div>
+      <div class="map-tools">
+        <button id="fitAllBtn" title="전체 농지 보기">전체</button>
+        <button id="gpsBtn" title="현재 위치">GPS</button>
+        <button id="menuBtn" title="관리 메뉴">메뉴</button>
+      </div>
+
+      <section id="selectedFarmCard" class="selected-card hidden" aria-live="polite">
+        <div>
+          <b id="selectedFarmTitle">농지 선택</b>
+          <small id="selectedFarmAddress"></small>
         </div>
-        <p id="authMessage" class="message"></p>
+        <button id="closeSelectedBtn" aria-label="선택 해제">×</button>
+      </section>
+
+      <section id="waterPanel" class="water-panel hidden">
+        <div class="water-head">
+          <div>
+            <strong>물관리</strong>
+            <span id="waterFarmLabel">지도에서 농지를 선택하세요</span>
+          </div>
+          <b id="waterTimer">--:--</b>
+        </div>
+        <div class="water-progress">
+          <div id="waterProgressBar"></div>
+        </div>
+        <div class="water-actions">
+          <button id="waterStartBtn" class="primary">물관리 시작</button>
+          <button id="waterFinishBtn" class="primary hidden">물관리 종료</button>
+          <button id="waterCancelBtn" class="danger hidden">기록 취소</button>
+        </div>
+      </section>
+
+      <section class="quick-dock">
+        <label class="switch-row">
+          <input type="checkbox" id="quickMode" checked>
+          <span>빠른 작업</span>
+        </label>
+        <select id="jobSelect" aria-label="현재 작업"></select>
+        <button id="undoBtn" class="undo" disabled>취소할 작업 없음</button>
+        <button id="historyBtn">작업 기록</button>
+      </section>
+    </main>
+
+    <aside id="drawer" class="drawer" aria-hidden="true">
+      <div class="drawer-head">
+        <strong>관리</strong>
+        <button id="drawerCloseBtn">닫기</button>
+      </div>
+      <nav class="drawer-tabs">
+        <button data-tab="location" class="active">위치 관리</button>
+        <button data-tab="data">데이터 관리</button>
+        <button data-tab="farms">농지 목록</button>
+      </nav>
+
+      <div id="locationTab" class="drawer-panel">
+        <div class="panel-card">
+          <h3>필지경계 일괄등록</h3>
+          <p>브이월드 주소 좌표와 WFS 결과의 리명·지번이 정확히 일치할 때만 경계를 저장합니다.</p>
+          <button id="syncAllBtn" class="primary wide">미등록 필지 일괄조회</button>
+          <button id="stopSyncBtn" class="secondary wide hidden">조회 중지</button>
+          <div id="syncProgress" class="progress-text">대기 중</div>
+        </div>
+        <div class="panel-card">
+          <h3>검증 필요 농지</h3>
+          <div id="locationList" class="list"></div>
+        </div>
+      </div>
+
+      <div id="dataTab" class="drawer-panel hidden">
+        <div class="panel-card">
+          <h3>온라인 데이터</h3>
+          <p>작업과 위치 변경은 Supabase에 즉시 저장되고 다른 기기에 실시간 반영됩니다.</p>
+          <button id="reloadBtn" class="secondary wide">서버에서 다시 불러오기</button>
+          <button id="exportJsonBtn" class="secondary wide">전체 JSON 내보내기</button>
+          <button id="exportCsvBtn" class="secondary wide">농지 CSV 내보내기</button>
+        </div>
+        <div class="panel-card">
+          <h3>사용자</h3>
+          <div id="profileInfo"></div>
+          <button id="signOutBtn" class="danger wide">로그아웃</button>
+        </div>
+      </div>
+
+      <div id="farmsTab" class="drawer-panel hidden">
+        <input id="farmSearch" class="search" placeholder="번호·지번·지명·지주 검색">
+        <div id="farmList" class="list"></div>
+      </div>
+    </aside>
+    <div id="drawerBackdrop" class="backdrop hidden"></div>
+
+    <dialog id="historyDialog">
+      <div class="dialog-head">
+        <strong>작업 기록</strong>
+        <button id="historyCloseBtn">닫기</button>
+      </div>
+      <div id="historyList" class="history-list"></div>
+    </dialog>
+
+    <dialog id="authDialog" class="auth-dialog">
+      <form id="authForm" method="dialog">
+        <h2>실시간 농지관리 로그인</h2>
+        <p>승인된 사용자만 농지와 작업 기록을 볼 수 있습니다.</p>
+        <label>이메일<input id="authEmail" type="email" required autocomplete="email"></label>
+        <label>비밀번호<input id="authPassword" type="password" autocomplete="current-password"></label>
+        <button id="passwordLoginBtn" type="button" class="primary wide">비밀번호 로그인</button>
+        <button id="magicLinkBtn" type="button" class="secondary wide">이메일 로그인 링크 받기</button>
+        <div id="authMessage" class="message"></div>
       </form>
-    </section>
+    </dialog>
 
-    <section id="dashboard" class="hidden">
-      <div class="summary-grid">
-        <article><span>등록 농지</span><strong id="fieldCount">0</strong><small>필지</small></article>
-        <article><span>전체 면적</span><strong id="totalArea">0</strong><small>㎡</small></article>
-        <article><span>미완료 작업</span><strong id="openTaskCount">0</strong><small>건</small></article>
-      </div>
+    <dialog id="configDialog" class="auth-dialog">
+      <form id="configForm" method="dialog">
+        <h2>서버 연결 설정</h2>
+        <p>배포 관리자가 제공한 Supabase 프로젝트 정보를 입력합니다.</p>
+        <label>Supabase URL<input id="configUrl" type="url" placeholder="https://xxxx.supabase.co" required></label>
+        <label>Publishable/Anon Key<textarea id="configKey" rows="4" required></textarea></label>
+        <button type="submit" class="primary wide">저장하고 연결</button>
+        <div class="hint">서비스 역할 키는 절대 입력하지 마십시오.</div>
+      </form>
+    </dialog>
 
-      <div class="content-grid">
-        <section class="panel">
-          <div class="section-title"><div><p class="eyebrow">FIELDS</p><h2>농지 목록</h2></div></div>
-          <form id="fieldForm" class="inline-form">
-            <input id="fieldName" placeholder="농지 이름" required />
-            <input id="fieldArea" type="number" min="0" step="0.1" placeholder="면적(㎡)" required />
-            <input id="fieldCrop" placeholder="재배 품종" />
-            <button type="submit">농지 추가</button>
-          </form>
-          <div id="fieldList" class="card-list"></div>
-        </section>
+    <div id="toast" class="toast hidden" role="status"></div>
+    <div id="busy" class="busy hidden"><span></span><b>처리 중</b></div>
+  </div>
 
-        <section class="panel">
-          <div class="section-title"><div><p class="eyebrow">SCHEDULE</p><h2>작업 일정</h2></div></div>
-          <form id="taskForm" class="inline-form">
-            <input id="taskTitle" placeholder="작업 내용" required />
-            <input id="taskDate" type="date" required />
-            <button type="submit">일정 추가</button>
-          </form>
-          <div id="taskList" class="card-list"></div>
-        </section>
-      </div>
-      <p id="appMessage" class="message"></p>
-    </section>
-  </main>
-
-  <template id="emptyTemplate"><div class="empty">아직 기록이 없습니다.</div></template>
-  <script src="app.js"></script>
+  <!-- farmland-runtime-config -->
+  <script type="module" src="/src/app.js"></script>
 </body>
 </html>

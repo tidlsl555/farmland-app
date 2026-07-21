@@ -1542,18 +1542,6 @@
     }));
   }
 
-  function addTaskType() {
-    const name = els.newTaskName.value.trim();
-    if (!name) return;
-    if (state.taskTypes.length >= 50) { alert('작업 항목은 최대 50개까지 추가할 수 있습니다.'); return; }
-    const newTask = { id: uid(), name, detailEnabled: true, color: TASK_COLOR_PALETTE[state.taskTypes.length % TASK_COLOR_PALETTE.length] };
-    state.taskTypes.push(newTask);
-    ensureQuickSettings();
-    if (!state.settings.quickTaskId) state.settings.quickTaskId = newTask.id;
-    els.newTaskName.value = '';
-    saveState();
-  }
-
   function addQuickTaskType() {
     const name = String(els.quickNewTaskName?.value || '').trim();
     if (!name) return;
@@ -2154,15 +2142,12 @@
   els.editParcelBtn.onclick = () => { const p = getParcel(selectedParcelId); if (p) openParcelModal(p); };
   els.deleteParcelBtn.onclick = deleteSelectedParcel;
   els.parcelForm.addEventListener('submit', saveParcelFromForm);
-  els.taskManagerBtn?.remove();
   els.dashboardBtn.onclick = () => { pestDashboardTaskId = ensureQuickSettings().quickTaskId || state.taskTypes[0]?.id || null; renderDashboard(); openModal('dashboardModalWrap'); };
   els.waterQuickBtn.onclick = () => {
     if (!state.parcels.length) { alert('먼저 농지를 추가하세요.'); return; }
     const id = selectedParcelId || state.parcels[0].id;
     openParcel(id,'water');
   };
-  els.addTaskTypeBtn.onclick = addTaskType;
-  els.newTaskName.addEventListener('keydown', e => { if (e.key==='Enter') { e.preventDefault(); addTaskType(); } });
   els.quickAddTaskBtn.onclick = addQuickTaskType;
   els.quickNewTaskName.addEventListener('keydown', e => { if (e.key==='Enter') { e.preventDefault(); addQuickTaskType(); } });
   els.pestTaskFilter.onchange = () => { pestDashboardTaskId = els.pestTaskFilter.value; selectQuickTask(pestDashboardTaskId, {enable:state.settings.quickWorkEnabled, closePalette:true, notify:false}); renderDashboard(); };

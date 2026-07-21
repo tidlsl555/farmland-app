@@ -1328,9 +1328,13 @@
       return `<label class="quick-task-option ${selected?'selected':''}" style="border-left:6px solid ${taskColor(task)}"><input type="radio" name="quickTask" value="${task.id}" ${selected?'checked':''}><span>${escapeHtml(task.name)}</span></label>`;
     }).join('') : '<div class="empty">작업관리에서 작업 항목을 먼저 추가하세요.</div>';
     els.quickTaskList.querySelectorAll('input[name="quickTask"]').forEach(input => input.addEventListener('change', () => {
+      const nextTask = getTask(input.value);
       selectQuickTask(input.value, {enable:true, closePalette:true, notify:true});
-      closeModal('quickWorkModalWrap');
+      if (!isWaterTask(nextTask)) closeModal('quickWorkModalWrap');
     }));
+    if (enabled && waterTaskSelected && !els.parcelDrawer.classList.contains('open')) {
+      queueMicrotask(() => openWaterForParcel(selectedParcelId));
+    }
   }
 
   function selectQuickTask(taskId, options={}) {
@@ -2125,8 +2129,9 @@
       return;
     }
     const task = getTask(settings.quickTaskId);
+    renderQuickWork();
+    openModal('quickWorkModalWrap');
     if (isWaterTask(task)) openWaterForParcel(selectedParcelId);
-    else { renderQuickWork(); openModal('quickWorkModalWrap'); }
   };
   els.quickSwitchOffBtn.onclick = () => setQuickWorkEnabled(false);
   els.quickPrevBtn.onclick = () => cycleQuickTask(-1);

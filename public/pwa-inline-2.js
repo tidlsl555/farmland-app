@@ -1269,6 +1269,16 @@
     settings.quickRecentTaskIds = [taskId, ...settings.quickRecentTaskIds.filter(id => id !== taskId)].slice(0, 8);
   }
 
+  function isWaterTask(task) {
+    return Boolean(task && /물관리/.test(String(task.name || '')));
+  }
+
+  function openWaterForParcel(parcelId) {
+    const id = parcelId || selectedParcelId || state.parcels[0]?.id;
+    if (!id) return;
+    openParcel(id, 'water');
+  }
+
   function renderQuickWork() {
     const settings = ensureQuickSettings();
     const selectedTask = getTask(settings.quickTaskId);
@@ -1285,7 +1295,7 @@
       ? `${selectedTask.name} 사용 중 · 누르면 작업 목록`
       : '마지막 작업으로 빠른 체크 즉시 시작';
 
-    const waterTaskSelected = Boolean(selectedTask && /물관리/.test(String(selectedTask.name || '')));
+    const waterTaskSelected = isWaterTask(selectedTask);
     const showExtraBox = Boolean(enabled && waterTaskSelected);
     document.body.classList.toggle('quick-work-active', showExtraBox);
     document.body.classList.toggle('water-task-active', showExtraBox);
@@ -1331,14 +1341,16 @@
     settings.quickTaskId = taskId;
     if (options.enable !== false) settings.quickWorkEnabled = true;
     rememberQuickTask(taskId);
+    const waterSelected = isWaterTask(task);
     if (settings.quickWorkEnabled) {
       exitAddMode();
       exitPlaceMode();
-      closeDrawer();
+      if (!waterSelected) closeDrawer();
     }
     if (options.closePalette !== false) quickPaletteOpen = false;
     safeStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     renderAll();
+    if (settings.quickWorkEnabled && waterSelected) openWaterForParcel(selectedParcelId);
     if (options.notify && changed) showQuickToast('빠른 작업 변경', `${task.name} · 지도 표식을 한 번 터치하면 완료`);
   }
 
@@ -1381,6 +1393,7 @@
     }
     safeStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     renderAll();
+    if (settings.quickWorkEnabled && isWaterTask(getTask(settings.quickTaskId))) openWaterForParcel(selectedParcelId);
   }
 
   function completeQuickWorkForParcel(parcelId, source='지도 빠른 작업 체크') {
@@ -1416,6 +1429,10 @@
     }
     const parcel = getParcel(parcelId);
     if (!parcel) return;
+    if (isWaterTask(task)) {
+      openWaterForParcel(parcelId);
+      return;
+    }
     const result = completeQuickWorkForParcel(parcelId, '지도 빠른 작업 체크');
     if (result.reason === 'done') {
       showQuickToast('이미 완료된 작업', `${parcel.number}. ${parcel.name || parcel.address} · ${task.name} · ${formatDate(result.work.date)}`, true);
@@ -1531,6 +1548,16 @@
     if (!state.settings.quickTaskId) state.settings.quickTaskId = newTask.id;
     els.newTaskName.value = '';
     saveState();
+  }
+
+  function addQuickTaskType() {
+    const name = String(els.quickNewTaskName?.value || '').trim();
+    if (!name) return;
+    if (state.taskTypes.length >= 50) { alert('작업 항목은 최대 50개까지 추가할 수 있습니다.'); return; }
+    const newTask = { id: uid(), name, detailEnabled: true, color: TASK_COLOR_PALETTE[state.taskTypes.length % TASK_COLOR_PALETTE.length] };
+    state.taskTypes.push(newTask);
+    els.quickNewTaskName.value = '';
+    selectQuickTask(newTask.id, {enable:true, closePalette:true, notify:true});
   }
 
   function getDashboardTask() {
@@ -2106,7 +2133,7 @@
       return;
     }
     const task = getTask(settings.quickTaskId);
-    if (task && /물관리/.test(String(task.name || ''))) toggleQuickPalette();
+    if (isWaterTask(task)) openWaterForParcel(selectedParcelId);
     else { renderQuickWork(); openModal('quickWorkModalWrap'); }
   };
   els.quickSwitchOffBtn.onclick = () => setQuickWorkEnabled(false);
@@ -2132,6 +2159,8 @@
   };
   els.addTaskTypeBtn.onclick = addTaskType;
   els.newTaskName.addEventListener('keydown', e => { if (e.key==='Enter') { e.preventDefault(); addTaskType(); } });
+  els.quickAddTaskBtn.onclick = addQuickTaskType;
+  els.quickNewTaskName.addEventListener('keydown', e => { if (e.key==='Enter') { e.preventDefault(); addQuickTaskType(); } });
   els.pestTaskFilter.onchange = () => { pestDashboardTaskId = els.pestTaskFilter.value; selectQuickTask(pestDashboardTaskId, {enable:state.settings.quickWorkEnabled, closePalette:true, notify:false}); renderDashboard(); };
   els.pestStatusFilter.onchange = () => { pestDashboardStatus = els.pestStatusFilter.value; renderDashboard(); };
   els.parcelCheckStatusFilter.onchange = () => { parcelCheckFilter = els.parcelCheckStatusFilter.value; renderQuickParcelChecklist(); };

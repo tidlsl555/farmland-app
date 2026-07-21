@@ -1216,7 +1216,7 @@
   function renderLog(log) {
     const task = log.taskId ? getTask(log.taskId) : null;
     const labels = {
-      'work-complete':'작업 완료', 'work-cancel':'완료 취소', 'work-note':'비고 수정',
+      'work-complete':'작업 완료', 'work-cancel':'완료 취소', 'work-reset':'작업 초기화', 'work-note':'비고 수정',
       'water-start':'물관리 시작', 'water-end':'물관리 종료'
     };
     const isWater = log.type.startsWith('water');
@@ -1229,7 +1229,6 @@
   let lastQuickAction = null;
   let parcelCheckFilter = 'pending';
   let parcelCheckSearchText = '';
-  const lastParcelQuickTap = new Map();
   function ensureQuickSettings() {
     state.settings = state.settings && typeof state.settings === 'object' ? state.settings : {};
     if (!('quickWorkEnabled' in state.settings)) state.settings.quickWorkEnabled = false;
@@ -1414,7 +1413,7 @@
     return {ok:true, parcel, task, work, completedAt};
   }
 
-  function cancelQuickWorkForParcel(parcelId, source='지도 숫자 두 번 터치 자동 취소') {
+  function resetQuickWorkForParcel(parcelId, source='지도 숫자 다시 누름 · 작업 상태 초기화') {
     const settings = ensureQuickSettings();
     const task = getTask(settings.quickTaskId);
     const parcel = getParcel(parcelId);
@@ -1423,20 +1422,15 @@
     if (!work.done) return {ok:false, parcel, task};
     work.done = false;
     work.date = null;
-    state.logs.push({ id:uid(), type:'work-cancel', parcelId:parcel.id, taskId:task.id, date:nowIso(), note:source });
+    state.logs.push({ id:uid(), type:'work-reset', parcelId:parcel.id, taskId:task.id, date:nowIso(), note:source });
     lastQuickAction = null;
-    persistStateQuietly('빠른작업 자동 취소');
+    persistStateQuietly('빠른작업 상태 초기화');
     renderAll();
     try { if (navigator.vibrate) navigator.vibrate([25,35,25]); } catch (_) {}
     return {ok:true, parcel, task};
   }
 
   function handleParcelMarkerTap(parcelId) {
-    const now = Date.now();
-    const last = lastParcelQuickTap.get(parcelId) || 0;
-    const doubleTap = now - last < 550;
-    lastParcelQuickTap.set(parcelId, now);
-
     const settings = ensureQuickSettings();
     const task = getTask(settings.quickTaskId);
     if (!settings.quickWorkEnabled || !task) {
@@ -1449,10 +1443,10 @@
       openWaterForParcel(parcelId);
       return;
     }
-    if (doubleTap) {
-      lastParcelQuickTap.set(parcelId, 0);
-      const cancelled = cancelQuickWorkForParcel(parcelId);
-      if (cancelled.ok) showQuickToast('작업 자동 취소', `${parcel.number}. ${parcel.name || parcel.address} · ${task.name}`);
+    const currentWork = getWork(parcel, task.id);
+    if (currentWork.done) {
+      const reset = resetQuickWorkForParcel(parcelId);
+      if (reset.ok) showQuickToast('작업 상태 초기화', `${parcel.number}. ${parcel.name || parcel.address} · ${task.name}`);
       return;
     }
     const result = completeQuickWorkForParcel(parcelId, '지도 빠른 작업 체크');

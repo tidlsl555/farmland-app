@@ -2150,8 +2150,9 @@
       return;
     }
     const task = getTask(settings.quickTaskId);
+    renderQuickWork();
+    openModal('quickWorkModalWrap');
     if (isWaterTask(task)) openWaterForParcel(selectedParcelId);
-    else { renderQuickWork(); openModal('quickWorkModalWrap'); }
   };
   els.quickSwitchOffBtn.onclick = () => setQuickWorkEnabled(false);
   els.quickPrevBtn.onclick = () => cycleQuickTask(-1);

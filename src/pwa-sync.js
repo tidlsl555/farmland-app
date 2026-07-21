@@ -59,6 +59,7 @@ async function syncBoundaries() {
     if (!missing.length) return;
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
+    const failures = [];
     for (let index = 0; index < missing.length; index += 1) {
       setStatus(`필지 경계 확인 ${index + 1}/${missing.length}`);
       const response = await fetch("/.netlify/functions/vworld-boundary", {
@@ -66,17 +67,21 @@ async function syncBoundaries() {
         headers: { "content-type": "application/json", authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ farmlandId: missing[index] })
       });
+      const result = await response.json().catch(() => ({}));
       if (response.ok) {
-        const result = await response.json();
         const state = window.farmlandAppBridge?.getState();
         const farm = snapshot.farmlands.find(item => item.id === result.farmlandId);
         const full = normalizeAddress(farm?.fullAddress);
         const parcel = state?.parcels?.find(item => full.endsWith(normalizeAddress(item.address)));
         if (parcel) { parcel.geometry = result.geometry; window.farmlandAppBridge?.applyRemoteState(state); }
+      } else {
+        failures.push(result.error || `HTTP ${response.status}`);
+        console.warn("VWorld boundary lookup failed", missing[index], response.status, result.error);
       }
       await new Promise(resolve => setTimeout(resolve, 180));
     }
     await saveRemoteState("필지 경계 동기화");
+    if (failures.length) setStatus(`경계 오류: ${failures[0]}`, true);
   } catch (error) {
     console.error("Boundary sync failed", error);
     setStatus("일부 필지 경계 확인 필요", true);

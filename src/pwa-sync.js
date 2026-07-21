@@ -21,6 +21,8 @@ let orgId = null;
 let applyingRemote = false;
 let saveTimer = null;
 let lastRemoteTimestamp = "";
+let connecting = false;
+let connected = false;
 
 function setStatus(text, error = false) {
   status.textContent = text;
@@ -95,8 +97,11 @@ window.farmlandServerSave = reason => {
 };
 
 async function connect() {
+  if (connecting || connected) return;
+  connecting = true;
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
+    connecting = false;
     setStatus("로그인 필요", true);
     authOverlay();
     return;
@@ -115,8 +120,17 @@ async function connect() {
         applyingRemote = false;
         setStatus("실시간 동기화됨");
       })
-      .subscribe(state => setStatus(state === "SUBSCRIBED" ? "실시간 연결됨" : "서버 연결 중"));
+      .subscribe(state => {
+        if (state === "SUBSCRIBED") {
+          connected = true;
+          connecting = false;
+          setStatus("실시간 연결됨");
+        } else {
+          setStatus("서버 연결 중");
+        }
+      });
   } catch (error) {
+    connecting = false;
     setStatus("서버 연결 오류", true);
     console.error(error);
   }

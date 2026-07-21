@@ -129,6 +129,7 @@
   let placeModeParcelId = null;
   let pendingLatLng = null;
   let selectedWaterHours = 48;
+  let waterPinSelectedId = null;
   let pestDashboardTaskId = 'all';
   let pestDashboardStatus = 'all';
   const markers = new Map();
@@ -919,7 +920,7 @@
       const activeWork = activeTask ? getWork(parcel, activeTask.id) : null;
       const waterRunning = state.waterSessions.some(s => s.parcelId === parcel.id && s.status === 'running');
       const waterMode = isWaterTask(activeTask);
-      const markerActive = waterMode ? (waterRunning || selectedParcelId === parcel.id) : Boolean(activeWork?.done);
+      const markerActive = waterMode ? (waterRunning || waterPinSelectedId === parcel.id) : Boolean(activeWork?.done);
       const markerColor = activeTask ? (markerActive ? taskColor(activeTask) : '#6b7280') : '';
       const markerContrast = activeTask ? taskContrast(markerColor) : '#ffffff';
       const statusClass = activeTask && !markerActive ? 'task-pending' : '';
@@ -1338,6 +1339,7 @@
     if (options.enable !== false) settings.quickWorkEnabled = true;
     rememberQuickTask(taskId);
     const waterSelected = isWaterTask(task);
+    if (!waterSelected) waterPinSelectedId = null;
     if (settings.quickWorkEnabled) {
       exitAddMode();
       exitPlaceMode();
@@ -1442,6 +1444,14 @@
     const parcel = getParcel(parcelId);
     if (!parcel) return;
     if (isWaterTask(task)) {
+      if (waterPinSelectedId === parcelId) {
+        waterPinSelectedId = null;
+        closeDrawer();
+        renderMarkers();
+        showQuickToast('물관리 선택 초기화', `${parcel.number}. ${parcel.name || parcel.address}`);
+        return;
+      }
+      waterPinSelectedId = parcelId;
       openWaterForParcel(parcelId);
       renderMarkers();
       return;

@@ -9,6 +9,19 @@ const parsePayload = text => {
   if(start>0 && end>start) return JSON.parse(clean.slice(start+1,end));
   throw new Error(`VWorld 응답 형식 오류: ${clean.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').slice(0,120)}`);
 };
+const fetchVworld = async url => {
+  let lastError;
+  for (let attempt=0; attempt<3; attempt+=1) {
+    try {
+      const response=await fetch(url,{headers:{accept:'application/json,text/javascript,*/*;q=0.8','user-agent':'Mozilla/5.0 (compatible; FarmlandBoundarySync/1.0)','accept-language':'ko-KR,ko;q=0.9'}});
+      const text=await response.text();
+      if(response.ok && text && !/^\s*<html/i.test(text)) return text;
+      lastError=new Error(`VWorld HTTP ${response.status}: ${text.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').slice(0,100)}`);
+    } catch(error) { lastError=error; }
+    await new Promise(resolve=>setTimeout(resolve,250*(attempt+1)));
+  }
+  throw lastError || new Error('VWorld 연결 실패');
+};
 
 export async function handler(event) {
   if (event.httpMethod !== 'POST') return json(405,{error:'POST 요청만 허용됩니다.'});
@@ -26,13 +39,13 @@ export async function handler(event) {
   if (farmError || !farm) return json(404,{error:'필지를 찾을 수 없습니다.'});
   try {
     const aq=new URLSearchParams({service:'address',request:'getcoord',version:'2.0',crs:'epsg:4326',address:farm.full_address,refine:'true',simple:'false',format:'json',type:'parcel',key});
-    const ar=await fetch(`https://api.vworld.kr/req/address?${aq}`); const ad=await ar.json();
+    const ad=parsePayload(await fetchVworld(`https://api.vworld.kr/req/address?${aq}`));
     const point=ad?.response?.result?.point; if(!point) throw new Error('주소 좌표를 찾지 못했습니다.');
     const x=Number(point.x),y=Number(point.y),d=0.002;
     let wd=null, lastError=null;
     for (const output of ['application/json','text/javascript']) {
       const wq=new URLSearchParams({key,SERVICE:'WFS',version:'1.1.0',request:'GetFeature',TYPENAME:'lt_c_landinfobasemap',BBOX:`${x-d},${y-d},${x+d},${y+d}`,OUTPUT:output,SRSNAME:'EPSG:4326',domain:'wormmanager.netlify.app'});
-      try { const wr=await fetch(`https://api.vworld.kr/req/wfs?${wq}`); wd=parsePayload(await wr.text()); if(Array.isArray(wd?.features)) break; }
+      try { wd=parsePayload(await fetchVworld(`https://api.vworld.kr/req/wfs?${wq}`)); if(Array.isArray(wd?.features)) break; }
       catch(error){lastError=error;}
     }
     if(!wd) throw lastError || new Error('VWorld WFS 응답이 없습니다.');

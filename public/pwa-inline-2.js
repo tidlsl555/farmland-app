@@ -1345,7 +1345,10 @@
     if (options.closePalette !== false) quickPaletteOpen = false;
     safeStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     renderAll();
-    if (settings.quickWorkEnabled && waterSelected) openWaterForParcel(selectedParcelId);
+    if (settings.quickWorkEnabled && waterSelected) {
+      closeModal('quickWorkModalWrap');
+      openWaterForParcel(selectedParcelId);
+    }
     if (options.notify && changed) showQuickToast('빠른 작업 변경', `${task.name} · 지도 표식을 한 번 터치하면 완료`);
   }
 
@@ -1535,9 +1538,8 @@
     </div>`).join('') : '<div class="empty">작업 항목이 없습니다.</div>';
 
     els.taskManagerList.querySelectorAll('[data-managed-quick-task]').forEach(input => input.addEventListener('change', () => {
-      const nextTask = getTask(input.dataset.managedQuickTask);
       selectQuickTask(input.dataset.managedQuickTask, {enable:true, closePalette:true, notify:true});
-      if (!isWaterTask(nextTask)) closeModal('quickWorkModalWrap');
+      closeModal('quickWorkModalWrap');
     }));
 
     els.taskManagerList.querySelectorAll('[data-task-color]').forEach(input => input.addEventListener('input', () => {
@@ -2151,9 +2153,8 @@
       return;
     }
     const task = getTask(settings.quickTaskId);
-    renderQuickWork();
-    openModal('quickWorkModalWrap');
     if (isWaterTask(task)) openWaterForParcel(selectedParcelId);
+    else { renderQuickWork(); openModal('quickWorkModalWrap'); }
   };
   els.quickSwitchOffBtn.onclick = () => setQuickWorkEnabled(false);
   els.quickPrevBtn.onclick = () => cycleQuickTask(-1);

@@ -1356,7 +1356,7 @@
 
   function cycleQuickTask(direction) {
     if (!state.taskTypes.length) {
-      alert('작업관리에서 작업 항목을 먼저 추가하세요.');
+      alert('빠른 메뉴에서 작업 항목을 먼저 추가하세요.');
       return;
     }
     const settings = ensureQuickSettings();
@@ -1379,7 +1379,8 @@
     if (enabled && !state.taskTypes.length) {
       alert('작업관리에서 작업 항목을 먼저 추가하세요.');
       closeModal('quickWorkModalWrap');
-      openModal('taskModalWrap');
+      renderQuickWork();
+      openModal('quickWorkModalWrap');
       return;
     }
     if (enabled && !getTask(settings.quickTaskId)) settings.quickTaskId = state.taskTypes[0]?.id || null;
@@ -1503,6 +1504,9 @@
   }
 
   function renderTaskManager() {
+    if (els.quickTaskSettingsHost && els.taskManagerList.parentElement !== els.quickTaskSettingsHost) {
+      els.quickTaskSettingsHost.appendChild(els.taskManagerList);
+    }
     els.taskManagerList.innerHTML = state.taskTypes.length ? state.taskTypes.map(t => `<div class="task-manager-row">
       <label class="task-color-picker" title="${escapeHtml(t.name)} 표시 색상"><input type="color" data-task-color="${t.id}" value="${taskColor(t)}" /></label>
       <input type="text" data-task-name="${t.id}" value="${escapeHtml(t.name)}" maxlength="40" />
@@ -2126,7 +2130,7 @@
   els.quickWorkBtn.onclick = () => {
     const settings = ensureQuickSettings();
     if (!settings.quickWorkEnabled) {
-      if (!state.taskTypes.length) { openModal('taskModalWrap'); return; }
+      if (!state.taskTypes.length) { renderQuickWork(); openModal('quickWorkModalWrap'); return; }
       setQuickWorkEnabled(true);
       const task = getTask(state.settings.quickTaskId);
       if (task) showQuickToast('빠른 작업 시작', `${task.name} · 지도 표식을 누르면 완료`);
@@ -2150,7 +2154,7 @@
   els.editParcelBtn.onclick = () => { const p = getParcel(selectedParcelId); if (p) openParcelModal(p); };
   els.deleteParcelBtn.onclick = deleteSelectedParcel;
   els.parcelForm.addEventListener('submit', saveParcelFromForm);
-  els.taskManagerBtn.onclick = () => openModal('taskModalWrap');
+  els.taskManagerBtn?.remove();
   els.dashboardBtn.onclick = () => { pestDashboardTaskId = ensureQuickSettings().quickTaskId || state.taskTypes[0]?.id || null; renderDashboard(); openModal('dashboardModalWrap'); };
   els.waterQuickBtn.onclick = () => {
     if (!state.parcels.length) { alert('먼저 농지를 추가하세요.'); return; }

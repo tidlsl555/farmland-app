@@ -1322,15 +1322,7 @@
     els.quickWorkStatus.innerHTML = enabled
       ? `<b><i class="task-color-dot" style="--task-color:${selectedColor};display:inline-block;margin-right:7px"></i>현재 ON · ${escapeHtml(selectedTask.name)}</b><span>선택 작업 ${escapeHtml(selectedTask.name)} · 완료 ${state.parcels.filter(p=>getWork(p, selectedTask.id).done).length}/${state.parcels.length}. 하단 ‘농지’ 버튼에서도 체크할 수 있습니다.</span>`
       : `<b>현재 OFF</b><span>작업명을 누르면 별도 확인 없이 즉시 켜집니다.</span>`;
-    els.quickTaskList.innerHTML = state.taskTypes.length ? quickTaskOrder().map(task => {
-      const selected = task.id === settings.quickTaskId;
-      return `<label class="quick-task-option ${selected?'selected':''}" style="border-left:6px solid ${taskColor(task)}"><input type="radio" name="quickTask" value="${task.id}" ${selected?'checked':''}><span>${escapeHtml(task.name)}</span></label>`;
-    }).join('') : '<div class="empty">작업관리에서 작업 항목을 먼저 추가하세요.</div>';
-    els.quickTaskList.querySelectorAll('input[name="quickTask"]').forEach(input => input.addEventListener('change', () => {
-      const nextTask = getTask(input.value);
-      selectQuickTask(input.value, {enable:true, closePalette:true, notify:true});
-      if (!isWaterTask(nextTask)) closeModal('quickWorkModalWrap');
-    }));
+    els.quickTaskList.innerHTML = '';
     if (enabled && waterTaskSelected && !els.parcelDrawer.classList.contains('open')) {
       queueMicrotask(() => openWaterForParcel(selectedParcelId));
     }
@@ -1533,12 +1525,20 @@
     if (els.quickTaskSettingsHost && els.taskManagerList.parentElement !== els.quickTaskSettingsHost) {
       els.quickTaskSettingsHost.appendChild(els.taskManagerList);
     }
-    els.taskManagerList.innerHTML = state.taskTypes.length ? state.taskTypes.map(t => `<div class="task-manager-row">
+    const quickSettings = ensureQuickSettings();
+    els.taskManagerList.innerHTML = state.taskTypes.length ? state.taskTypes.map(t => `<div class="task-manager-row ${t.id===quickSettings.quickTaskId?'selected':''}">
+      <input type="radio" name="managedQuickTask" data-managed-quick-task="${t.id}" ${t.id===quickSettings.quickTaskId?'checked':''} title="빠른 작업 선택" />
       <label class="task-color-picker" title="${escapeHtml(t.name)} 표시 색상"><input type="color" data-task-color="${t.id}" value="${taskColor(t)}" /></label>
       <input type="text" data-task-name="${t.id}" value="${escapeHtml(t.name)}" maxlength="40" />
       <label class="detail-switch"><input type="checkbox" data-task-detail="${t.id}" ${t.detailEnabled?'checked':''}/> 상세 ON</label>
       <button class="delete-task" data-delete-task="${t.id}" title="삭제">×</button>
     </div>`).join('') : '<div class="empty">작업 항목이 없습니다.</div>';
+
+    els.taskManagerList.querySelectorAll('[data-managed-quick-task]').forEach(input => input.addEventListener('change', () => {
+      const nextTask = getTask(input.dataset.managedQuickTask);
+      selectQuickTask(input.dataset.managedQuickTask, {enable:true, closePalette:true, notify:true});
+      if (!isWaterTask(nextTask)) closeModal('quickWorkModalWrap');
+    }));
 
     els.taskManagerList.querySelectorAll('[data-task-color]').forEach(input => input.addEventListener('input', () => {
       const task = getTask(input.dataset.taskColor); if (!task) return;

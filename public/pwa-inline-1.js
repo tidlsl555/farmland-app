@@ -34,13 +34,16 @@
       this._el.innerHTML = '';
       this._tilePane = document.createElement('div');
       this._tilePane.className = 'native-tile-pane';
+      this._vectorPane = document.createElementNS('http://www.w3.org/2000/svg','svg');
+      this._vectorPane.classList.add('native-vector-pane');
+      Object.assign(this._vectorPane.style,{position:'absolute',inset:'0',width:'100%',height:'100%',pointerEvents:'none',overflow:'hidden'});
       this._markerPane = document.createElement('div');
       this._markerPane.className = 'native-marker-pane';
       this._controlPane = document.createElement('div');
       this._controlPane.className = 'native-control-pane';
       this._attribution = document.createElement('div');
       this._attribution.className = 'leaflet-control-attribution native-attribution';
-      this._el.append(this._tilePane, this._markerPane, this._controlPane, this._attribution);
+      this._el.append(this._tilePane, this._vectorPane, this._markerPane, this._controlPane, this._attribution);
       this._bindInteractions();
     }
     _bindInteractions() {
@@ -195,11 +198,20 @@
   class CircleMarker extends NativeMarker {
     constructor(latlng,options){super(latlng,options);const o=options||{};const d=(o.radius||7)*2;this._icon={className:'',iconSize:[d,d],iconAnchor:[d/2,d/2],html:`<div style="width:${d}px;height:${d}px;border-radius:50%;border:${o.weight||2}px solid ${o.color||'#2563a8'};background:${o.fillColor||'#fff'};opacity:${o.fillOpacity??1}"></div>`};}
   }
+  class NativePolygon {
+    constructor(latlngs,options){this._latlngs=latlngs||[];this._options=options||{};this._paths=[];}
+    addTo(map){map._addLayer(this);return this;}
+    _rings(){return Array.isArray(this._latlngs?.[0]?.[0]?.[0])?this._latlngs.flat(1):this._latlngs;}
+    _mount(){if(this._paths.length)return;for(const ring of this._rings()){const path=document.createElementNS('http://www.w3.org/2000/svg','polygon');path.setAttribute('fill',this._options.fillColor||'#22c55e');path.setAttribute('fill-opacity',String(this._options.fillOpacity??0.22));path.setAttribute('stroke',this._options.color||'#15803d');path.setAttribute('stroke-width',String(this._options.weight||2));path.style.pointerEvents='auto';this._map._vectorPane.appendChild(path);this._paths.push(path);}}
+    _render(){if(!this._map)return;if(!this._paths.length)this._mount();const rings=this._rings();this._paths.forEach((path,i)=>{const ring=rings[i]||[];path.setAttribute('points',ring.map(v=>{const p=this._map._point(toLatLng(v));return `${p.x},${p.y}`;}).join(' '));});}
+    _remove(){this._paths.forEach(p=>p.remove());this._paths=[];}
+  }
   const L = {
     map:(id,options)=>new NativeMap(id,options),
     tileLayer:(url,options)=>new TileLayer(url,options),
     marker:(latlng,options)=>new NativeMarker(latlng,options),
     circleMarker:(latlng,options)=>new CircleMarker(latlng,options),
+    polygon:(latlngs,options)=>new NativePolygon(latlngs,options),
     divIcon:options=>options||{},
     latLngBounds:points=>({_points:points||[]}),
     control:{zoom:()=>({addTo(map){const box=document.createElement('div');box.className='leaflet-control leaflet-control-zoom native-zoom';const plus=document.createElement('button');plus.type='button';plus.textContent='+';const minus=document.createElement('button');minus.type='button';minus.textContent='−';plus.onclick=e=>{e.stopPropagation();map._setZoom(1);};minus.onclick=e=>{e.stopPropagation();map._setZoom(-1);};box.append(plus,minus);map._controlPane.appendChild(box);return this;}})}

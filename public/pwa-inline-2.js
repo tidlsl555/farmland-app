@@ -131,6 +131,7 @@
   let pestDashboardTaskId = 'all';
   let pestDashboardStatus = 'all';
   const markers = new Map();
+  const boundaryLayers = new Map();
 
   const map = L.map('map', { zoomControl: false, preferCanvas: true }).setView([36.6205, 128.2975], 12);
   L.control.zoom({ position: 'bottomleft' }).addTo(map);
@@ -885,10 +886,21 @@
     for (const [id, marker] of markers.entries()) {
       if (!validIds.has(id)) { map.removeLayer(marker); markers.delete(id); }
     }
+    for (const [id, layer] of boundaryLayers.entries()) {
+      const parcel = state.parcels.find(p => p.id === id);
+      if (!parcel?.geometry) { map.removeLayer(layer); boundaryLayers.delete(id); }
+    }
 
     const settings = ensureQuickSettings();
     const activeTask = settings.quickWorkEnabled ? getTask(settings.quickTaskId) : null;
     located.forEach(parcel => {
+      if (parcel.geometry && !boundaryLayers.has(parcel.id) && typeof L.polygon === 'function') {
+        const geometry = parcel.geometry;
+        const polygons = geometry.type === 'MultiPolygon' ? geometry.coordinates : [geometry.coordinates];
+        const latlngs = polygons.map(poly => poly.map(ring => ring.map(([lng,lat]) => [lat,lng])));
+        const layer = L.polygon(latlngs, { color:'#15803d', weight:2, fillColor:'#22c55e', fillOpacity:0.22 }).addTo(map);
+        boundaryLayers.set(parcel.id, layer);
+      }
       let marker = markers.get(parcel.id);
       const sourceClass = ['naver-auto','address-auto','manual','embedded-village'].includes(parcel.locationSource) ? parcel.locationSource : '';
       const approximateLocation = isApproximateLocation(parcel);

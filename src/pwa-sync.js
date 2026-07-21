@@ -23,6 +23,67 @@ let saveTimer = null;
 let lastRemoteTimestamp = "";
 let connecting = false;
 let connected = false;
+let boundarySyncRunning = false;
+
+const normalizeAddress = value => String(value || "").replace(/\s+/g, "");
+
+function mergeBoundarySnapshot(snapshot) {
+  const state = window.farmlandAppBridge?.getState();
+  if (!state?.parcels || !Array.isArray(snapshot?.farmlands)) return { state, missing: [] };
+  const missing = [];
+  let changed = false;
+  for (const farm of snapshot.farmlands) {
+    const full = normalizeAddress(farm.fullAddress);
+    const parcel = state.parcels.find(item => {
+      const address = normalizeAddress(item.address);
+      return address && (full.endsWith(address) || address.endsWith(normalizeAddress(`${farm.ri || ""}${farm.jibun || ""}`)));
+    });
+    if (!parcel) continue;
+    if (farm.geometry && JSON.stringify(parcel.geometry) !== JSON.stringify(farm.geometry)) {
+      parcel.geometry = farm.geometry;
+      changed = true;
+    }
+    if (!farm.geometry) missing.push(farm.id);
+  }
+  if (changed) window.farmlandAppBridge?.applyRemoteState(state);
+  return { state, missing };
+}
+
+async function syncBoundaries() {
+  if (boundarySyncRunning) return;
+  boundarySyncRunning = true;
+  try {
+    const { data: snapshot, error } = await supabase.rpc("app_snapshot");
+    if (error) throw error;
+    let { missing } = mergeBoundarySnapshot(snapshot);
+    if (!missing.length) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    for (let index = 0; index < missing.length; index += 1) {
+      setStatus(`필지 경계 확인 ${index + 1}/${missing.length}`);
+      const response = await fetch("/.netlify/functions/vworld-boundary", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ farmlandId: missing[index] })
+      });
+      if (response.ok) {
+        const result = await response.json();
+        const state = window.farmlandAppBridge?.getState();
+        const farm = snapshot.farmlands.find(item => item.id === result.farmlandId);
+        const full = normalizeAddress(farm?.fullAddress);
+        const parcel = state?.parcels?.find(item => full.endsWith(normalizeAddress(item.address)));
+        if (parcel) { parcel.geometry = result.geometry; window.farmlandAppBridge?.applyRemoteState(state); }
+      }
+      await new Promise(resolve => setTimeout(resolve, 180));
+    }
+    await saveRemoteState("필지 경계 동기화");
+  } catch (error) {
+    console.error("Boundary sync failed", error);
+    setStatus("일부 필지 경계 확인 필요", true);
+  } finally {
+    boundarySyncRunning = false;
+  }
+}
 
 function setStatus(text, error = false) {
   status.textContent = text;
@@ -110,6 +171,7 @@ async function connect() {
   try {
     orgId = await profileOrg();
     await loadRemoteState();
+    setTimeout(syncBoundaries, 800);
     supabase.channel(`app-state-${orgId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "app_states", filter: `org_id=eq.${orgId}` }, payload => {
         const row = payload.new;

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#245b3b" />
+  <title>논관리</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">FARMLAND LOG</p>
+      <h1>논관리</h1>
+    </div>
+    <button id="logoutButton" class="ghost hidden">로그아웃</button>
+  </header>
+
+  <main>
+    <section id="authSection" class="auth-card">
+      <div>
+        <p class="eyebrow">나의 영농 기록</p>
+        <h2>오늘의 논을 한눈에 관리하세요.</h2>
+        <p class="muted">농지와 작업 일정을 기록하면 모든 기기에서 실시간으로 동기화됩니다.</p>
+      </div>
+      <form id="authForm">
+        <label>이메일<input id="email" type="email" required autocomplete="email" /></label>
+        <label>비밀번호<input id="password" type="password" required minlength="6" autocomplete="current-password" /></label>
+        <div class="button-row">
+          <button type="submit">로그인</button>
+          <button id="signUpButton" type="button" class="secondary">회원가입</button>
+        </div>
+        <p id="authMessage" class="message"></p>
+      </form>
+    </section>
+
+    <section id="dashboard" class="hidden">
+      <div class="summary-grid">
+        <article><span>등록 농지</span><strong id="fieldCount">0</strong><small>필지</small></article>
+        <article><span>전체 면적</span><strong id="totalArea">0</strong><small>㎡</small></article>
+        <article><span>미완료 작업</span><strong id="openTaskCount">0</strong><small>건</small></article>
+      </div>
+
+      <div class="content-grid">
+        <section class="panel">
+          <div class="section-title"><div><p class="eyebrow">FIELDS</p><h2>농지 목록</h2></div></div>
+          <form id="fieldForm" class="inline-form">
+            <input id="fieldName" placeholder="농지 이름" required />
+            <input id="fieldArea" type="number" min="0" step="0.1" placeholder="면적(㎡)" required />
+            <input id="fieldCrop" placeholder="재배 품종" />
+            <button type="submit">농지 추가</button>
+          </form>
+          <div id="fieldList" class="card-list"></div>
+        </section>
+
+        <section class="panel">
+          <div class="section-title"><div><p class="eyebrow">SCHEDULE</p><h2>작업 일정</h2></div></div>
+          <form id="taskForm" class="inline-form">
+            <input id="taskTitle" placeholder="작업 내용" required />
+            <input id="taskDate" type="date" required />
+            <button type="submit">일정 추가</button>
+          </form>
+          <div id="taskList" class="card-list"></div>
+        </section>
+      </div>
+      <p id="appMessage" class="message"></p>
+    </section>
+  </main>
+
+  <template id="emptyTemplate"><div class="empty">아직 기록이 없습니다.</div></template>
+  <script src="app.js"></script>
+</body>
+</html>

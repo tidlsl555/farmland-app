@@ -920,7 +920,7 @@
       const activeWork = activeTask ? getWork(parcel, activeTask.id) : null;
       const waterRunning = state.waterSessions.some(s => s.parcelId === parcel.id && s.status === 'running');
       const waterMode = isWaterTask(activeTask);
-      const markerActive = waterMode ? (waterRunning || waterPinSelectedId === parcel.id) : Boolean(activeWork?.done);
+      const markerActive = waterMode ? (waterRunning || waterPinSelectedId === parcel.id || Boolean(activeWork?.done)) : Boolean(activeWork?.done);
       const markerColor = activeTask ? (markerActive ? taskColor(activeTask) : '#6b7280') : '';
       const markerContrast = activeTask ? taskContrast(markerColor) : '#ffffff';
       const statusClass = activeTask && !markerActive ? 'task-pending' : '';
@@ -1444,13 +1444,22 @@
     const parcel = getParcel(parcelId);
     if (!parcel) return;
     if (isWaterTask(task)) {
-      if (waterPinSelectedId === parcelId) {
+      const currentWork = getWork(parcel, task.id);
+      if (currentWork.done || waterPinSelectedId === parcelId) {
+        const running = state.waterSessions.find(s => s.parcelId === parcelId && s.status === 'running');
+        if (running) {
+          running.endAt = nowIso();
+          running.status = 'reset';
+          state.logs.push({ id:uid(), type:'water-end', parcelId, date:running.endAt, hours:running.hours, note:'물관리 핀 초기화' });
+        }
+        resetQuickWorkForParcel(parcelId, '물관리 핀 다시 누름 · 작업 상태 초기화');
         waterPinSelectedId = null;
         closeDrawer();
         renderMarkers();
         showQuickToast('물관리 선택 초기화', `${parcel.number}. ${parcel.name || parcel.address}`);
         return;
       }
+      completeQuickWorkForParcel(parcelId, '지도 물관리 핀 선택');
       waterPinSelectedId = parcelId;
       openWaterForParcel(parcelId);
       renderMarkers();

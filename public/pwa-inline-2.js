@@ -118,6 +118,7 @@
     applyRemoteState(remoteState) {
       if (!remoteState || !Array.isArray(remoteState.parcels) || !Array.isArray(remoteState.taskTypes)) return;
       state = structuredClone(remoteState);
+      assignEmbeddedMapLocations(state);
       safeStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       renderAll();
       updateRecoveryStatus();
@@ -713,6 +714,18 @@
 
   function assignEmbeddedMapLocations(target) {
     if (!target || !Array.isArray(target.parcels)) return target;
+    target.parcels.forEach(parcel => {
+      if (hasLocation(parcel) && !isVerifiedLocation(parcel)) {
+        parcel.lat = null;
+        parcel.lng = null;
+        parcel.locationSource = '';
+        parcel.locationConfidence = null;
+        parcel.locationMatchLevel = '';
+        parcel.locationResolvedAddress = '';
+      }
+    });
+    return target;
+    /* Legacy approximate placement is intentionally disabled.
     const groups = new Map();
     target.parcels.forEach(parcel => {
       if (hasLocation(parcel)) return;
@@ -737,7 +750,7 @@
         parcel.updatedAt = parcel.updatedAt || nowIso();
       });
     });
-    return target;
+    return target; */
   }
 
   function deduplicateParcels(target) {
@@ -881,7 +894,7 @@
   }
 
   function renderMarkers() {
-    const located = state.parcels.filter(hasLocation);
+    const located = state.parcels.filter(isVerifiedLocation);
     const validIds = new Set(located.map(p => p.id));
     for (const [id, marker] of markers.entries()) {
       if (!validIds.has(id)) { map.removeLayer(marker); markers.delete(id); }
@@ -903,7 +916,6 @@
       }
       let marker = markers.get(parcel.id);
       const sourceClass = ['naver-auto','address-auto','manual','embedded-village'].includes(parcel.locationSource) ? parcel.locationSource : '';
-      const approximateLocation = isApproximateLocation(parcel);
       const activeWork = activeTask ? getWork(parcel, activeTask.id) : null;
       const waterRunning = state.waterSessions.some(s => s.parcelId === parcel.id && s.status === 'running');
       const markerColor = activeTask ? (activeWork.done ? taskColor(activeTask) : '#6b7280') : '';
@@ -942,7 +954,7 @@
           iconEl.onpointerup = tap;
           iconEl.onclick = null;
           const taskState = activeTask ? `${activeTask.name} ${activeWork.done ? '완료' : '미완료'}` : '농지 상세';
-          iconEl.title = `${parcel.number}. ${parcel.name || parcel.address} · ${taskState}${approximateLocation ? ' · 근사 위치' : ''}`;
+          iconEl.title = `${parcel.number}. ${parcel.name || parcel.address} · ${taskState}`;
           iconEl.setAttribute('aria-label', iconEl.title);
           iconEl.setAttribute('role', 'button');
         }
@@ -968,7 +980,7 @@
     els.unlocatedBadge.textContent = pendingCount;
     els.unlocatedBadge.style.display = 'none';
     els.pendingMenuCount.textContent = `${pendingCount}곳`;
-    if (els.locationMenuSummary) els.locationMenuSummary.textContent = `정확 ${verified} · 근사 ${approximate} · 없음 ${pendingCount}`;
+    if (els.locationMenuSummary) els.locationMenuSummary.textContent = `정확 ${verified} · 미지정 ${pendingCount}`;
     if (els.autoLocateMenuState) {
       const target = Math.ceil(state.parcels.length * 0.86);
       els.autoLocateMenuState.textContent = verified >= target ? `목표 달성 · 정확 ${verified}/${state.parcels.length}` : `정확 ${verified}/${state.parcels.length} · 95점 목표 ${target}곳`;
@@ -987,7 +999,7 @@
         <button style="border:0;background:transparent;text-align:left;min-width:0;padding:0" data-open-parcel="${p.id}">
           <b>${escapeHtml(p.name || '농지 ' + p.number)}</b>
           <small>${escapeHtml(p.address)}</small>
-          <span class="location-state ${hasLocation(p)?'':'pending'}">${hasLocation(p)?(isVerifiedLocation(p)?'● 정확 좌표':'● 근사 좌표 · 확인 필요'):'● 위치 지정 필요'}</span>
+          <span class="location-state ${isVerifiedLocation(p)?'':'pending'}">${isVerifiedLocation(p)?'● 정확 좌표':'● 위치 지정 필요'}</span>
         </button>
         <span>${hasLocation(p) ? '보기' : '미지정'}</span>
       </div>`).join('');
@@ -2166,7 +2178,7 @@
     let last = 0;
     try { last = new Date(safeStorage.getItem('farmland_exact_verify_last_v2') || 0).getTime(); } catch (_) {}
     const retryDue = !last || Date.now() - last > 6 * 60 * 60 * 1000;
-    if (score < 95 && retryDue && navigator.onLine !== false && locationVerificationTargets().length) {
+    if (false && score < 95 && retryDue && navigator.onLine !== false && locationVerificationTargets().length) {
       autoLocateParcels({automatic:true});
     }
   }, 1400);

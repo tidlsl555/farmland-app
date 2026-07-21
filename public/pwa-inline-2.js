@@ -918,9 +918,11 @@
       const sourceClass = ['naver-auto','address-auto','manual','embedded-village'].includes(parcel.locationSource) ? parcel.locationSource : '';
       const activeWork = activeTask ? getWork(parcel, activeTask.id) : null;
       const waterRunning = state.waterSessions.some(s => s.parcelId === parcel.id && s.status === 'running');
-      const markerColor = activeTask ? (activeWork.done ? taskColor(activeTask) : '#6b7280') : '';
+      const waterMode = isWaterTask(activeTask);
+      const markerActive = waterMode ? (waterRunning || selectedParcelId === parcel.id) : Boolean(activeWork?.done);
+      const markerColor = activeTask ? (markerActive ? taskColor(activeTask) : '#6b7280') : '';
       const markerContrast = activeTask ? taskContrast(markerColor) : '#ffffff';
-      const statusClass = activeTask && !activeWork.done ? 'task-pending' : '';
+      const statusClass = activeTask && !markerActive ? 'task-pending' : '';
       const pinIcon = L.divIcon({
         className: 'farm-pin-wrap',
         html: `<div class="farm-pin ${sourceClass} ${statusClass} ${waterRunning?'water-running':''}" ${markerColor ? `style="--pin-color:${markerColor}"` : ''}><span style="color:${markerContrast}">${escapeHtml(parcel.number || '')}</span></div>`,
@@ -1441,6 +1443,7 @@
     if (!parcel) return;
     if (isWaterTask(task)) {
       openWaterForParcel(parcelId);
+      renderMarkers();
       return;
     }
     const currentWork = getWork(parcel, task.id);

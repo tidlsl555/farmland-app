@@ -2,6 +2,13 @@ import { createClient } from '@supabase/supabase-js';
 
 const json = (statusCode, body) => ({ statusCode, headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}, body:JSON.stringify(body) });
 const normalize = value => String(value || '').replace(/\s+/g,'').replace(/산(?=\d)/,'산');
+const parsePayload = text => {
+  const clean=String(text||'').trim();
+  try { return JSON.parse(clean); } catch {}
+  const start=clean.indexOf('('), end=clean.lastIndexOf(')');
+  if(start>0 && end>start) return JSON.parse(clean.slice(start+1,end));
+  throw new Error(`VWorld 응답 형식 오류: ${clean.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').slice(0,120)}`);
+};
 
 export async function handler(event) {
   if (event.httpMethod !== 'POST') return json(405,{error:'POST 요청만 허용됩니다.'});
@@ -22,8 +29,13 @@ export async function handler(event) {
     const ar=await fetch(`https://api.vworld.kr/req/address?${aq}`); const ad=await ar.json();
     const point=ad?.response?.result?.point; if(!point) throw new Error('주소 좌표를 찾지 못했습니다.');
     const x=Number(point.x),y=Number(point.y),d=0.002;
-    const wq=new URLSearchParams({service:'WFS',request:'GetFeature',version:'2.0.0',typename:'lt_c_landinfobasemap',bbox:`${x-d},${y-d},${x+d},${y+d},EPSG:4326`,output:'application/json',srsname:'EPSG:4326',key,domain:'wormmanager.netlify.app'});
-    const wr=await fetch(`https://api.vworld.kr/req/wfs?${wq}`); const wd=await wr.json();
+    let wd=null, lastError=null;
+    for (const output of ['application/json','text/javascript']) {
+      const wq=new URLSearchParams({key,SERVICE:'WFS',version:'1.1.0',request:'GetFeature',TYPENAME:'lt_c_landinfobasemap',BBOX:`${x-d},${y-d},${x+d},${y+d}`,OUTPUT:output,SRSNAME:'EPSG:4326',domain:'wormmanager.netlify.app'});
+      try { const wr=await fetch(`https://api.vworld.kr/req/wfs?${wq}`); wd=parsePayload(await wr.text()); if(Array.isArray(wd?.features)) break; }
+      catch(error){lastError=error;}
+    }
+    if(!wd) throw lastError || new Error('VWorld WFS 응답이 없습니다.');
     const wanted=normalize(`${farm.ri}${farm.jibun}`);
     const features=Array.isArray(wd?.features)?wd.features:[];
     const feature=features.find(f=>normalize(`${f.properties?.ri_nm||f.properties?.ri||''}${f.properties?.jibun||''}`)===wanted)

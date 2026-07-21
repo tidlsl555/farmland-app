@@ -918,7 +918,9 @@
       let marker = markers.get(parcel.id);
       const sourceClass = ['naver-auto','address-auto','manual','embedded-village'].includes(parcel.locationSource) ? parcel.locationSource : '';
       const activeWork = activeTask ? getWork(parcel, activeTask.id) : null;
-      const waterRunning = state.waterSessions.some(s => s.parcelId === parcel.id && s.status === 'running');
+      const runningWaterSession = state.waterSessions.find(s => s.parcelId === parcel.id && s.status === 'running');
+      const waterRunning = Boolean(runningWaterSession);
+      const waterProgress = runningWaterSession ? waterSessionProgress(runningWaterSession) : 0;
       const waterMode = isWaterTask(activeTask);
       const markerActive = waterMode ? (waterRunning || waterPinSelectedId === parcel.id || Boolean(activeWork?.done)) : Boolean(activeWork?.done);
       const markerColor = activeTask ? (markerActive ? taskColor(activeTask) : '#6b7280') : '';
@@ -926,7 +928,7 @@
       const statusClass = activeTask && !markerActive ? 'task-pending' : '';
       const pinIcon = L.divIcon({
         className: 'farm-pin-wrap',
-        html: `<div class="farm-pin ${sourceClass} ${statusClass} ${waterRunning?'water-running':''}" ${markerColor ? `style="--pin-color:${markerColor}"` : ''}><span style="color:${markerContrast}">${escapeHtml(parcel.number || '')}</span></div>`,
+        html: `<div class="farm-pin ${sourceClass} ${statusClass} ${waterRunning?'water-running water-progress':''}" ${markerColor ? `style="--pin-color:${markerColor};--water-progress:${waterProgress}%"` : ''}><span style="color:${markerContrast}">${escapeHtml(parcel.number || '')}</span></div>`,
         iconSize: [34, 42],
         iconAnchor: [17, 38],
         tooltipAnchor: [0, -33]
@@ -1189,12 +1191,13 @@
     const tick = () => {
       const current = state.waterSessions.find(s => s.id === session.id && s.status === 'running');
       if (!current) return;
-      const start = new Date(current.startAt).getTime();
       const end = new Date(current.plannedEndAt).getTime();
       const remain = Math.max(0, end - Date.now());
-      const elapsedPct = Math.min(100, Math.max(0, ((Date.now()-start)/(end-start))*100));
+      const elapsedPct = waterSessionProgress(current);
       countEl.textContent = msToClock(remain);
       progressEl.style.width = `${elapsedPct}%`;
+      const pin = markers.get(parcelId)?.getElement?.()?.querySelector('.farm-pin');
+      if (pin) pin.style.setProperty('--water-progress', `${elapsedPct}%`);
       if (remain <= 0) {
         stopWater(parcelId, 'completed');
         return;
@@ -1202,6 +1205,13 @@
       setTimeout(tick, 1000);
     };
     tick();
+  }
+
+  function waterSessionProgress(session) {
+    const start = new Date(session?.startAt).getTime();
+    const end = new Date(session?.plannedEndAt).getTime();
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return 0;
+    return Math.min(100, Math.max(0, ((Date.now() - start) / (end - start)) * 100));
   }
 
   function msToClock(ms) {

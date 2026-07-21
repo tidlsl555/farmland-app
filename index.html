@@ -13,7 +13,7 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <!-- farmland-runtime-config -->
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
-<script src="./pwa-inline-1.js?v=20260722-10"></script>
+<script src="./pwa-inline-1.js?v=20260722-11"></script>
   <style>
     .native-map-fallback { touch-action:none; user-select:none; }
     .native-tile-pane,.native-marker-pane,.native-control-pane { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
@@ -115,6 +115,13 @@
     .marker-label-inner.approximate::after { content:' · 근사'; font-size:8px; opacity:.85; }
     .farm-pin.task-pending { opacity: .78; filter: saturate(.55); }
     .farm-pin.water-running { box-shadow: 0 0 0 5px rgba(37,99,168,.38), 0 3px 10px rgba(0,0,0,.32); }
+    .farm-pin.water-running.water-progress {
+      background: linear-gradient(45deg,
+        var(--pin-color) 0%,
+        var(--pin-color) var(--water-progress, 0%),
+        #d7dde3 var(--water-progress, 0%),
+        #d7dde3 100%);
+    }
 
     .topbar {
       position: absolute; z-index: 500; left: 12px; right: 12px; top: 12px;
@@ -678,9 +685,9 @@
   </div>
 </div>
 
-<script src="./pwa-inline-2.js?v=20260722-10"></script>
+<script src="./pwa-inline-2.js?v=20260722-11"></script>
 
-<script src="./pwa-inline-3.js?v=20260722-10"></script>
+<script src="./pwa-inline-3.js?v=20260722-11"></script>
 <noscript><div style="position:fixed;inset:20px;z-index:9999;background:white;padding:20px">이 앱은 자바스크립트 실행이 필요합니다. Chrome 또는 삼성 인터넷에서 열어 주세요.</div></noscript>
 <script type="module" src="/src/pwa-sync.js"></script>
 </body>

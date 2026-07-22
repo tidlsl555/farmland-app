@@ -13,7 +13,7 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <!-- farmland-runtime-config -->
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
-<script src="./pwa-inline-1.js?v=20260722-12"></script>
+<script src="./pwa-inline-1.js?v=20260722-13"></script>
   <style>
     .native-map-fallback { touch-action:none; user-select:none; }
     .native-tile-pane,.native-marker-pane,.native-control-pane { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
@@ -192,25 +192,24 @@
 
     /* 지도에서 빠른작업을 즉시 바꾸는 하단 전환 바 */
     .quick-switch-dock {
-      position:absolute; z-index:880; left:50%; bottom:calc(8px + env(safe-area-inset-bottom));
-      transform:translate(-50%, 130%); width:min(470px, calc(100% - 20px));
-      display:grid; grid-template-columns:54px 44px minmax(0,1fr) 44px 46px; gap:6px; align-items:stretch;
-      padding:7px; border-radius:20px; background:rgba(255,255,255,.97); border:1px solid rgba(255,255,255,.8);
-      box-shadow:0 14px 36px rgba(17,43,22,.25); transition:transform .2s ease; pointer-events:none;
+      position:absolute; z-index:880; left:50%; bottom:calc(6px + env(safe-area-inset-bottom));
+      transform:translate(-50%, 130%); width:min(350px, calc(100% - 18px));
+      display:grid; grid-template-columns:34px 32px minmax(0,1fr) 32px 38px; gap:4px; align-items:stretch;
+      padding:4px; border-radius:14px; background:rgba(255,255,255,.96); border:1px solid rgba(255,255,255,.85);
+      box-shadow:0 8px 22px rgba(17,43,22,.22); transition:transform .2s ease; pointer-events:none;
     }
     .quick-switch-dock.show { transform:translate(-50%,0); pointer-events:auto; }
     /* 빠른작업 바가 장소찾기 상태창·지도 저작권·하단 조작부를 덮지 않도록 공간을 분리합니다. */
-    body.quick-work-active .geo-status { bottom:calc(92px + env(safe-area-inset-bottom)); }
-    body.quick-work-active .leaflet-control-attribution { margin-bottom:74px !important; }
-    body.quick-work-active .leaflet-control-zoom { margin-bottom:74px !important; }
-    body.quick-work-active .quick-work-toast { bottom:calc(94px + env(safe-area-inset-bottom)); }
-    .quick-switch-dock button { border:0; border-radius:13px; min-height:48px; font-weight:900; }
-    .quick-switch-off { background:#eef1ed; color:#5d675d; font-size:10px; }
-    .quick-switch-arrow { background:#e8f3e8; color:var(--green); font-size:25px; line-height:1; }
-    .quick-switch-current { background:var(--quick-color, var(--green)); color:var(--quick-contrast, #fff); min-width:0; padding:6px 9px; }
-    .quick-switch-current small { display:block; opacity:.82; font-size:9px; margin-bottom:2px; }
-    .quick-switch-current b { display:block; max-width:100%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-size:14px; }
-    .quick-switch-list-btn { background:#23343f; color:#fff; font-size:19px; }
+    body.quick-work-active .geo-status { bottom:calc(58px + env(safe-area-inset-bottom)); }
+    body.quick-work-active .leaflet-control-attribution { margin-bottom:42px !important; }
+    body.quick-work-active .leaflet-control-zoom { margin-bottom:42px !important; }
+    body.quick-work-active .quick-work-toast { bottom:calc(60px + env(safe-area-inset-bottom)); }
+    .quick-switch-dock button { border:0; border-radius:10px; min-height:36px; padding:3px; font-weight:900; }
+    .quick-switch-off { background:#eef1ed; color:#5d675d; font-size:17px; line-height:1; }
+    .quick-switch-arrow { background:#e8f3e8; color:var(--green); font-size:21px; line-height:1; }
+    .quick-switch-current { background:var(--quick-color, var(--green)); color:var(--quick-contrast, #fff); min-width:0; padding:4px 7px; }
+    .quick-switch-current b { display:block; max-width:100%; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-size:12px; }
+    .quick-switch-list-btn { background:#23343f; color:#fff; font-size:17px; line-height:1; }
     .quick-task-palette {
       position:absolute; left:0; right:0; bottom:calc(100% + 8px); display:none;
       max-height:min(38vh, 270px); overflow:auto; padding:9px; border-radius:18px;
@@ -226,8 +225,8 @@
     .quick-palette-task.recent::after { content:'최근'; display:block; margin-top:2px; font-size:8px; opacity:.68; }
     .quick-work-toast.dock-up { bottom:calc(88px + env(safe-area-inset-bottom)); }
     @media (max-width:390px) {
-      .quick-switch-dock { grid-template-columns:48px 40px minmax(0,1fr) 40px 42px; gap:4px; padding:6px; }
-      .quick-switch-dock button { min-height:46px; }
+      .quick-switch-dock { width:calc(100% - 16px); grid-template-columns:32px 30px minmax(0,1fr) 30px 36px; gap:3px; padding:4px; }
+      .quick-switch-dock button { min-height:34px; }
       .quick-palette-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
     }
 
@@ -421,8 +420,7 @@
     .parcel-check-toggle { border:0; border-radius:12px; min-height:48px; font-weight:950; background:#e9eeea; color:#586258; }
     .parcel-check-row.done .parcel-check-toggle { background:var(--quick-color, var(--green)); color:var(--quick-contrast, #fff); }
     .parcel-check-warning { margin:0 0 10px; border:1px solid #f0d8b4; border-radius:12px; background:#fffaf3; padding:10px; font-size:10px; line-height:1.45; color:#76531d; }
-    .quick-switch-list-btn { font-size:10px; line-height:1.15; }
-    .quick-switch-list-btn b { display:block; font-size:15px; margin-bottom:1px; }
+    .quick-switch-list-btn { font-size:17px; line-height:1; }
 
     .dashboard-mode-tabs { display:flex; gap:8px; margin-bottom:12px; }
     .dashboard-mode-tab { flex:1; border:1px solid var(--line); background:#f3f6f2; color:#516051; border-radius:12px; padding:11px 8px; font-weight:900; }
@@ -515,11 +513,11 @@
   <div class="quick-work-toast" id="quickWorkToast" aria-live="polite"><div class="check">✓</div><div style="min-width:0;flex:1"><b id="quickWorkToastTitle">작업 완료</b><span id="quickWorkToastText"></span></div><button class="undo-toast-btn" id="quickUndoBtn" type="button">되돌리기</button></div>
 
   <div class="quick-switch-dock" id="quickSwitchDock" aria-label="빠른 작업 즉시 전환">
-    <button class="quick-switch-off" id="quickSwitchOffBtn" type="button">OFF</button>
+    <button class="quick-switch-off" id="quickSwitchOffBtn" type="button" title="빠른 체크 끄기" aria-label="빠른 체크 끄기">×</button>
     <button class="quick-switch-arrow" id="quickPrevBtn" type="button" title="이전 작업">‹</button>
-    <button class="quick-switch-current" id="quickCurrentBtn" type="button" title="작업 목록 열기"><small>빠른작업 ON</small><b id="quickCurrentTaskName">작업 선택</b></button>
+    <button class="quick-switch-current" id="quickCurrentBtn" type="button" title="작업 목록 열기"><b id="quickCurrentTaskName">작업 선택</b></button>
     <button class="quick-switch-arrow" id="quickNextBtn" type="button" title="다음 작업">›</button>
-    <button class="quick-switch-list-btn" id="quickListBtn" type="button" title="경작지 체크 목록"><b>☑</b>농지</button>
+    <button class="quick-switch-list-btn" id="quickListBtn" type="button" title="농지 체크 목록" aria-label="농지 체크 목록">☑</button>
     <div class="quick-task-palette" id="quickTaskPalette"></div>
   </div>
 
@@ -685,9 +683,9 @@
   </div>
 </div>
 
-<script src="./pwa-inline-2.js?v=20260722-12"></script>
+<script src="./pwa-inline-2.js?v=20260722-13"></script>
 
-<script src="./pwa-inline-3.js?v=20260722-12"></script>
+<script src="./pwa-inline-3.js?v=20260722-13"></script>
 <noscript><div style="position:fixed;inset:20px;z-index:9999;background:white;padding:20px">이 앱은 자바스크립트 실행이 필요합니다. Chrome 또는 삼성 인터넷에서 열어 주세요.</div></noscript>
 <script type="module" src="/src/pwa-sync.js"></script>
 </body>

@@ -135,6 +135,8 @@
   const markers = new Map();
   const boundaryLayers = new Map();
   let userLocationMarker = null;
+  let mapAddressSearchMarker = null;
+  let mapAddressSearchResult = null;
 
   const map = L.map('map', { zoomControl: false, preferCanvas: true }).setView([36.6205, 128.2975], 12);
   L.control.zoom({ position: 'bottomleft' }).addTo(map);
@@ -531,6 +533,80 @@
     } catch (_) {}
 
     return await searchNaverAddress(parcel);
+  }
+
+  function searchParcelOptions(query) {
+    const target = normalizedMatchText(query);
+    const direct = state.parcels.filter(parcel => {
+      const address = normalizedMatchText(parcel.address);
+      const name = normalizedMatchText(parcel.name);
+      const number = normalizedMatchText(parcel.number);
+      return (address && (address.includes(target) || target.includes(address))) || name.includes(target) || number === target;
+    });
+    const ordered = [...direct, ...state.parcels.filter(parcel => !direct.includes(parcel))];
+    return {ordered, directIds:new Set(direct.map(parcel => parcel.id))};
+  }
+
+  function closeMapAddressSearch() {
+    if (mapAddressSearchMarker) map.removeLayer(mapAddressSearchMarker);
+    mapAddressSearchMarker = null;
+    mapAddressSearchResult = null;
+    els.mapAddressSearchResult.classList.remove('show');
+    els.mapAddressSearchStatus.textContent = '검색 위치를 확인한 뒤 농지를 선택해 저장하세요.';
+  }
+
+  async function searchMapAddress(event) {
+    event?.preventDefault?.();
+    const query = els.mapAddressSearchInput.value.trim();
+    if (!query) { els.mapAddressSearchInput.focus(); return; }
+    els.mapAddressSearchBtn.disabled = true;
+    els.mapAddressSearchBtn.textContent = '확인';
+    els.mapAddressSearchResult.classList.add('show');
+    els.mapAddressSearchStatus.textContent = `${query} 위치를 검색하고 있습니다.`;
+    try {
+      const result = await geocodeAddress({address:query});
+      if (!result || !validFarmAreaCoordinate(result.lat, result.lng)) throw new Error('exact-location-not-found');
+      mapAddressSearchResult = {...result, query};
+      const ll = [Number(result.lat), Number(result.lng)];
+      const icon = L.divIcon({className:'farm-pin-wrap', html:'<div class="map-search-pin"><span>검색</span></div>', iconSize:[38,44], iconAnchor:[19,40]});
+      if (mapAddressSearchMarker) mapAddressSearchMarker.setLatLng(ll).setIcon(icon);
+      else mapAddressSearchMarker = L.marker(ll, {icon, title:`검색 위치: ${query}`}).addTo(map);
+      map.setView(ll, 18);
+      const {ordered, directIds} = searchParcelOptions(query);
+      els.mapAddressParcelSelect.innerHTML = ordered.map(parcel => `<option value="${parcel.id}">${directIds.has(parcel.id)?'★ ':''}${escapeHtml(parcel.number)}. ${escapeHtml(parcel.name || parcel.address)} · ${escapeHtml(parcel.address)}</option>`).join('');
+      els.mapAddressSearchStatus.textContent = directIds.size
+        ? `검색 위치를 표시했습니다. 일치 농지 ${directIds.size}개 중 저장할 농지를 확인하세요.`
+        : '검색 위치를 표시했습니다. 목록에서 저장할 농지를 선택하세요.';
+    } catch (_) {
+      closeMapAddressSearch();
+      els.mapAddressSearchResult.classList.add('show');
+      els.mapAddressSearchStatus.textContent = '정확한 지번 위치를 찾지 못했습니다. 리·지번과 번지를 함께 입력해 주세요.';
+      els.mapAddressParcelSelect.innerHTML = '';
+    } finally {
+      els.mapAddressSearchBtn.disabled = false;
+      els.mapAddressSearchBtn.textContent = '검색';
+    }
+  }
+
+  function saveMapAddressLocation() {
+    const parcel = getParcel(els.mapAddressParcelSelect.value);
+    if (!parcel || !mapAddressSearchResult) return;
+    const {lat, lng, query} = mapAddressSearchResult;
+    if (!confirm(`${parcel.number}. ${parcel.name || parcel.address}\n검색 위치를 이 농지의 정확한 위치로 저장할까요?`)) return;
+    parcel.lat = Number(lat);
+    parcel.lng = Number(lng);
+    parcel.locationSource = 'manual';
+    parcel.locationConfidence = 100;
+    parcel.locationMatchLevel = 'parcel';
+    parcel.locationResolvedAddress = query;
+    parcel.locationVerifiedAt = nowIso();
+    parcel.updatedAt = nowIso();
+    selectedParcelId = parcel.id;
+    closeMapAddressSearch();
+    saveState('지번 검색 위치 저장');
+    map.setView([parcel.lat, parcel.lng], 18);
+    openParcel(parcel.id);
+    showQuickToast('농지 위치 저장', `${parcel.number}. ${parcel.name || parcel.address}`);
   }
 
   function showGeoStatus(show=true) {
@@ -2171,6 +2247,9 @@
   });
 
   els.quickUndoBtn.onclick = undoLastQuickAction;
+  els.mapAddressSearchForm.addEventListener('submit', searchMapAddress);
+  els.mapAddressSaveBtn.onclick = saveMapAddressLocation;
+  els.mapAddressCloseBtn.onclick = closeMapAddressSearch;
   els.appRepairBtn.onclick = repairApp;
   els.runDiagnosticsBtn.onclick = () => renderDiagnostics(true);
   els.restoreSnapshotBtn.onclick = restoreLatestSnapshot;

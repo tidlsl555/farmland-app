@@ -13,7 +13,7 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <!-- farmland-runtime-config -->
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
-<script src="./pwa-inline-1.js?v=20260722-13"></script>
+<script src="./pwa-inline-1.js?v=20260722-14"></script>
   <style>
     .native-map-fallback { touch-action:none; user-select:none; }
     .native-tile-pane,.native-marker-pane,.native-control-pane { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
@@ -127,6 +127,27 @@
       position: absolute; z-index: 500; left: 12px; right: 12px; top: 12px;
       display: flex; align-items: center; gap: 8px;
       pointer-events: none;
+    }
+    .map-address-search {
+      position:absolute; z-index:540; top:58px; left:50%; transform:translateX(-50%);
+      width:min(510px, calc(100% - 92px)); pointer-events:auto;
+    }
+    .map-address-search form { display:grid; grid-template-columns:minmax(0,1fr) 52px; gap:5px; padding:5px; border-radius:14px; background:rgba(255,255,255,.97); box-shadow:0 5px 18px rgba(15,35,20,.2); }
+    .map-address-search input, .map-address-search select { min-width:0; border:1px solid var(--line); border-radius:10px; background:#fff; padding:9px 10px; font-size:12px; outline:none; }
+    .map-address-search input:focus, .map-address-search select:focus { border-color:var(--green); }
+    .map-address-search button { border:0; border-radius:10px; min-height:36px; font-size:12px; font-weight:900; }
+    .map-address-search form button { background:var(--green); color:#fff; }
+    .map-search-result { display:none; margin-top:5px; padding:7px; border-radius:13px; background:rgba(255,255,255,.98); box-shadow:0 5px 18px rgba(15,35,20,.2); }
+    .map-search-result.show { display:block; }
+    .map-search-result p { margin:0 0 6px; font-size:10px; color:var(--muted); line-height:1.4; }
+    .map-search-actions { display:grid; grid-template-columns:minmax(0,1fr) 62px 34px; gap:5px; }
+    .map-search-save { background:var(--blue); color:#fff; }
+    .map-search-close { background:#edf1ec; color:#526052; font-size:17px !important; }
+    .map-search-pin { width:38px; height:38px; border-radius:50% 50% 50% 8px; transform:rotate(-45deg); display:grid; place-items:center; background:#dc2626; border:3px solid #fff; box-shadow:0 0 0 4px rgba(220,38,38,.22),0 4px 12px #0004; }
+    .map-search-pin span { transform:rotate(45deg); color:#fff; font-size:9px; font-weight:950; }
+    @media (max-width:430px) {
+      .map-address-search { width:calc(100% - 84px); left:8px; transform:none; }
+      .map-address-search form { grid-template-columns:minmax(0,1fr) 46px; }
     }
     .topbar > * { pointer-events: auto; }
     .menu-btn, .icon-btn {
@@ -496,6 +517,21 @@
     <button class="icon-btn" id="locateBtn" title="현재 위치">⌖</button>
   </div>
 
+  <div class="map-address-search" id="mapAddressSearch">
+    <form id="mapAddressSearchForm">
+      <input id="mapAddressSearchInput" type="search" placeholder="지번 검색 (예: 유오리 523-2)" autocomplete="off" />
+      <button id="mapAddressSearchBtn" type="submit">검색</button>
+    </form>
+    <div class="map-search-result" id="mapAddressSearchResult">
+      <p id="mapAddressSearchStatus">검색 위치를 확인한 뒤 농지를 선택해 저장하세요.</p>
+      <div class="map-search-actions">
+        <select id="mapAddressParcelSelect" aria-label="위치를 저장할 농지"></select>
+        <button class="map-search-save" id="mapAddressSaveBtn" type="button">저장</button>
+        <button class="map-search-close" id="mapAddressCloseBtn" type="button" aria-label="검색 위치 닫기">×</button>
+      </div>
+    </div>
+  </div>
+
   <div class="action-rail">
     <button class="action-btn map-type" id="mapTypeBtn" type="button" title="일반지도와 위성지도를 전환합니다" aria-pressed="false"><span class="ico" id="mapTypeIcon">▧</span><span id="mapTypeLabel">위성</span></button>
     <button class="action-btn quick-work" id="quickWorkBtn" type="button" title="지도 표식을 한 번 눌러 선택 작업을 완료합니다" aria-pressed="false"><span class="ico">✓</span><span class="quick-label" id="quickWorkLabel">빠른시작</span></button>
@@ -683,9 +719,9 @@
   </div>
 </div>
 
-<script src="./pwa-inline-2.js?v=20260722-13"></script>
+<script src="./pwa-inline-2.js?v=20260722-14"></script>
 
-<script src="./pwa-inline-3.js?v=20260722-13"></script>
+<script src="./pwa-inline-3.js?v=20260722-14"></script>
 <noscript><div style="position:fixed;inset:20px;z-index:9999;background:white;padding:20px">이 앱은 자바스크립트 실행이 필요합니다. Chrome 또는 삼성 인터넷에서 열어 주세요.</div></noscript>
 <script type="module" src="/src/pwa-sync.js"></script>
 </body>

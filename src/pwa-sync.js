@@ -62,7 +62,7 @@ async function syncBoundaries() {
     const failures = [];
     for (let index = 0; index < missing.length; index += 1) {
       setStatus(`필지 경계 확인 ${index + 1}/${missing.length}`);
-      const response = await fetch("/.netlify/functions/vworld-boundary", {
+      const response = await fetch("https://wormmanager.netlify.app/.netlify/functions/vworld-boundary", {
         method: "POST",
         headers: { "content-type": "application/json", authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ farmlandId: missing[index] })

@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'farmland-pwa-v1.1.11';
+const CACHE_VERSION = 'farmland-pwa-v1.1.12';
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const APP_SHELL = [

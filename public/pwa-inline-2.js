@@ -134,6 +134,7 @@
   let pestDashboardStatus = 'all';
   const markers = new Map();
   const boundaryLayers = new Map();
+  let userLocationMarker = null;
 
   const map = L.map('map', { zoomControl: false, preferCanvas: true }).setView([36.6205, 128.2975], 12);
   L.control.zoom({ position: 'bottomleft' }).addTo(map);
@@ -1821,7 +1822,14 @@
     navigator.geolocation.getCurrentPosition(pos => {
       const ll = [pos.coords.latitude, pos.coords.longitude];
       map.setView(ll, 17);
-      L.circleMarker(ll, { radius:7, weight:3, color:'#2563a8', fillColor:'#fff', fillOpacity:1 }).addTo(map).bindPopup('현재 위치').openPopup();
+      if (userLocationMarker) {
+        userLocationMarker.setLatLng(ll).openPopup();
+      } else {
+        userLocationMarker = L.circleMarker(ll, { radius:7, weight:3, color:'#2563a8', fillColor:'#fff', fillOpacity:1 })
+          .addTo(map)
+          .bindPopup('현재 위치')
+          .openPopup();
+      }
     }, () => alert('현재 위치 권한을 허용해 주세요.'), { enableHighAccuracy:true, timeout:10000 });
   }
 

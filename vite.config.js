@@ -38,7 +38,12 @@ export default defineConfig(({ mode, command }) => {
     build: {
       target: "es2022",
       sourcemap: false,
-      assetsDir: "assets"
+      assetsDir: "assets",
+      rollupOptions: {
+        output: {
+          entryFileNames: "assets/app.js"
+        }
+      }
     }
   };
 });

@@ -1,9 +1,18 @@
-const CACHE_VERSION = 'farmland-pwa-v1.1.15';
+const CACHE_VERSION = 'farmland-pwa-v1.1.16';
+const INLINE_VERSION = '20260722-15';
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const APP_SHELL = [
-  './', './index.html', './농지관리앱.html', './manifest.webmanifest',
-  './icons/icon-192.png', './icons/icon-512.png'
+  './',
+  './index.html',
+  './runtime-config.js',
+  './manifest.webmanifest',
+  `./pwa-inline-1.js?v=${INLINE_VERSION}`,
+  `./pwa-inline-2.js?v=${INLINE_VERSION}`,
+  `./pwa-inline-3.js?v=${INLINE_VERSION}`,
+  './assets/app.js',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
 self.addEventListener('install', event => {

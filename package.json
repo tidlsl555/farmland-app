@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
+    "lint": "node scripts/lint.mjs",
+    "test": "node --test",
     "build": "vite build && node scripts/verify-pwa.mjs",
     "preview": "vite preview --host 0.0.0.0"
   },

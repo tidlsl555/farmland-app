@@ -95,45 +95,6 @@ function setStatus(text, error = false) {
   status.style.color = error ? "#b91c1c" : "#166534";
 }
 
-function authOverlay(message = "서버에 저장하려면 로그인하세요.") {
-  let overlay = document.getElementById("farmlandAuthOverlay");
-  if (overlay) return overlay;
-  overlay = document.createElement("div");
-  overlay.id = "farmlandAuthOverlay";
-  overlay.style.cssText = "position:fixed;inset:0;z-index:20000;display:grid;place-items:center;background:#0f172acc;padding:20px";
-  overlay.innerHTML = `<form style="width:min(390px,100%);background:#fff;border-radius:20px;padding:24px;box-shadow:0 20px 60px #0005;font-family:system-ui">
-    <h2 style="margin:0 0 8px">실시간 농지관리 로그인</h2>
-    <p data-message style="margin:0 0 16px;color:#64748b">${message}</p>
-    <label style="display:block;margin-bottom:10px">이메일<input name="email" type="email" required autocomplete="username" style="box-sizing:border-box;width:100%;margin-top:5px;padding:12px;border:1px solid #cbd5e1;border-radius:10px"></label>
-    <label style="display:block;margin-bottom:14px">비밀번호<input name="password" type="password" required autocomplete="current-password" style="box-sizing:border-box;width:100%;margin-top:5px;padding:12px;border:1px solid #cbd5e1;border-radius:10px"></label>
-    <button style="width:100%;padding:13px;border:0;border-radius:11px;background:#166534;color:#fff;font-weight:900">로그인</button>
-    <button type="button" data-reset-password style="width:100%;margin-top:8px;padding:11px;border:1px solid #cbd5e1;border-radius:11px;background:#fff;color:#334155;font-weight:800">비밀번호 재설정 메일 받기</button>
-  </form>`;
-  overlay.querySelector("form").addEventListener("submit", async event => {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const messageEl = overlay.querySelector("[data-message]");
-    messageEl.textContent = "로그인 중…";
-    const { error } = await supabase.auth.signInWithPassword({
-      email: String(form.get("email") || ""),
-      password: String(form.get("password") || "")
-    });
-    if (error) messageEl.textContent = `로그인 오류: ${error.message}`;
-  });
-  overlay.querySelector("[data-reset-password]").addEventListener("click", async () => {
-    const email = overlay.querySelector('input[name="email"]')?.value.trim();
-    const messageEl = overlay.querySelector("[data-message]");
-    if (!email) { messageEl.textContent = "이메일을 먼저 입력하세요."; return; }
-    messageEl.textContent = "재설정 메일을 보내는 중…";
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${location.origin}${location.pathname}`
-    });
-    messageEl.textContent = error ? `메일 발송 오류: ${error.message}` : "재설정 메일을 보냈습니다. 받은편지함과 스팸함을 확인하세요.";
-  });
-  document.body.append(overlay);
-  return overlay;
-}
-
 function passwordRecoveryOverlay() {
   document.getElementById("farmlandAuthOverlay")?.remove();
   let overlay = document.getElementById("farmlandPasswordRecoveryOverlay");

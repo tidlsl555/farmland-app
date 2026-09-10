@@ -122,13 +122,20 @@
   async function registerServiceWorker() {
     if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
     try {
+      let updateReloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (updateReloaded) return;
+        updateReloaded = true;
+        location.reload();
+      });
       const registration = await navigator.serviceWorker.register('./sw.js', {scope:'./'});
+      registration.update().catch(() => {});
       registration.addEventListener('updatefound', () => {
         const worker = registration.installing;
         if (!worker) return;
         worker.addEventListener('statechange', () => {
           if (worker.state === 'installed' && navigator.serviceWorker.controller) {
-            setText('pwaNetworkState', '새 버전 준비됨 · 앱 재실행 권장');
+            setText('pwaNetworkState', '새 버전 적용 중…');
           }
         });
       });

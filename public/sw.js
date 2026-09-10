@@ -1,5 +1,5 @@
-const CACHE_VERSION = 'farmland-pwa-v1.1.17';
-const INLINE_VERSION = '20260910-1';
+const CACHE_VERSION = 'farmland-pwa-v1.1.18';
+const INLINE_VERSION = '20260910-2';
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const APP_SHELL = [
@@ -20,7 +20,13 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => !k.startsWith(CACHE_VERSION)).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(key => !key.startsWith(CACHE_VERSION)).map(key => caches.delete(key)));
+    await self.clients.claim();
+    const windows = await self.clients.matchAll({type: 'window'});
+    await Promise.all(windows.map(client => client.navigate(client.url)));
+  })());
 });
 
 async function trimCache(cacheName, maxEntries) {
@@ -57,11 +63,13 @@ self.addEventListener('fetch', event => {
   }
 
   if (url.origin === self.location.origin) {
-    event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {
-      const clone = response.clone();
-      caches.open(APP_CACHE).then(cache => cache.put(request, clone));
+    event.respondWith(fetch(request).then(response => {
+      if (response.ok) {
+        const clone = response.clone();
+        caches.open(APP_CACHE).then(cache => cache.put(request, clone));
+      }
       return response;
-    })));
+    }).catch(() => caches.match(request)));
     return;
   }
 

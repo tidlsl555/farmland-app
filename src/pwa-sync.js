@@ -213,8 +213,8 @@ async function connect() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
     connecting = false;
-    setStatus("로그인 필요", true);
-    authOverlay();
+    document.getElementById("farmlandAuthOverlay")?.remove();
+    setStatus("기기 저장 모드");
     return;
   }
   document.getElementById("farmlandAuthOverlay")?.remove();

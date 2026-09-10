@@ -1,5 +1,5 @@
-const CACHE_VERSION = 'farmland-pwa-v1.1.16';
-const INLINE_VERSION = '20260722-15';
+const CACHE_VERSION = 'farmland-pwa-v1.1.17';
+const INLINE_VERSION = '20260910-1';
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const APP_SHELL = [
